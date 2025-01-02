@@ -1,0 +1,12 @@
+# config.py
+
+# Choose the type of analysis here. Options: 'linear', 'logistic', 'knn', etc.
+CONFIG_TYPE =  'knn'  # Change this to 'advanced_regression' as needed
+
+# Specify the appropriate flow function based on the analysis type
+FLOW_FUNCTION = f'flow.flow_{CONFIG_TYPE}'
+
+# Directory and file paths
+RAW_DATA_DIR = 'rawdata'
+RAW_DATA_FILE = 'medical_clean.csv'
+

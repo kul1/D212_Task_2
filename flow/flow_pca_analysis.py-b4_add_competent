@@ -1,0 +1,113 @@
+import os
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import roc_curve, auc
+from utils.visualizations import create_visualizations, save_class_distribution, save_auc_curve, save_recommendations_summary
+
+def run_pca_analysis(data_with_dummies, config):
+    """
+    Run PCA analysis and apply KNN classification with PCA-transformed data.
+
+    Parameters:
+    - data_with_dummies (pd.DataFrame): Dataset with dummies created.
+    - config: Configuration object with settings for PCA and analysis.
+
+    Returns:
+    - None
+    """
+    print("\n### Step 1: Standardizing Data ###")
+
+    # Select numeric columns for PCA
+    feature_columns = [col for col in data_with_dummies.columns if col != config.TARGET_COLUMN]
+    numeric_columns = data_with_dummies[feature_columns].select_dtypes(include=["number"]).columns
+
+    X = data_with_dummies[numeric_columns]
+    y = data_with_dummies[config.TARGET_COLUMN]
+
+    # Standardize the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Apply PCA
+    print("\n### Step 2: Performing PCA ###")
+    pca = PCA(n_components=config.PCA_COMPONENTS_RETAINED)
+    X_pca = pca.fit_transform(X_scaled)
+
+    print("\n### Data After PCA ###")
+    print(X_pca[:5])  # Display first 5 PCA-transformed rows
+
+    # Save explained variance plot
+    os.makedirs(config.RESULTS_DIR, exist_ok=True)
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, config.PCA_COMPONENTS_RETAINED + 1), pca.explained_variance_ratio_, marker="o")
+    plt.title("Explained Variance of PCA Components")
+    plt.xlabel("Principal Components")
+    plt.ylabel("Explained Variance Ratio")
+
+    explained_variance_path = os.path.join(config.RESULTS_DIR, "explained_variance.png")
+    plt.savefig(explained_variance_path)
+    plt.close()
+    print(f"Explained variance plot saved to: {explained_variance_path}")
+
+    # Output PCA loadings
+    print("\n### Step 3: Principal Component Loadings ###")
+    for i in range(config.PCA_COMPONENTS_RETAINED):
+        print(f"PC{i+1} Loadings:\n{pca.components_[i]}")
+
+    # Split data for KNN
+    print("\n### Step 4: Splitting Data for Classification ###")
+    X_train, X_test, y_train, y_test = train_test_split(X_pca, y, test_size=config.TEST_SIZE, random_state=config.RANDOM_STATE)
+
+    # Train KNN Classifier
+    print("Training KNN Classifier...")
+    knn = KNeighborsClassifier(n_neighbors=config.KNN_CONFIG["n_neighbors"])
+    knn.fit(X_train, y_train)
+
+    # Evaluate KNN Classifier
+    print("Evaluating KNN Classifier...")
+    y_pred = knn.predict(X_test)
+    accuracy = (y_pred == y_test).mean()
+    print(f"Model Accuracy: {accuracy:.2f}")
+
+    # Save class distribution plot
+    class_distribution_path = os.path.join(config.RESULTS_DIR, "class_distribution.png")
+    save_class_distribution(data_with_dummies, config.TARGET_COLUMN, class_distribution_path)
+    print(f"Class distribution plot saved to: {class_distribution_path}")
+
+    # Save recommendations summary
+    recommendations_path = os.path.join(config.RESULTS_DIR, "recommendations_summary.png")
+    save_recommendations_summary(recommendations_path)
+    print(f"Recommendations summary saved to: {recommendations_path}")
+
+    # Generate AUC Curve
+    try:
+        print("\nGenerating AUC Curve...")
+        y_scores = knn.predict_proba(X_test)[:, 1]  # Probability scores for class 1
+        fpr, tpr, _ = roc_curve(y_test, y_scores)
+        roc_auc = auc(fpr, tpr)
+        print(f"AUC: {roc_auc:.2f}")
+
+        # Save AUC Curve
+        auc_curve_path = os.path.join(config.RESULTS_DIR, "auc_curve.png")
+        save_auc_curve(y_test, y_scores, auc_curve_path)
+        print(f"AUC curve saved to: {auc_curve_path}")
+    except Exception as e:
+        print("Error generating AUC curve. Model may not support probability predictions.")
+        print(f"Error: {e}")
+
+    # Generate visualizations
+    print("\n### Step 5: Generating Visualizations ###")
+    create_visualizations(
+        data_with_dummies,
+        config.TARGET_COLUMN,
+        config.INDEPENDENT_VARIABLES,
+        X_train,
+        y_train,
+        config,
+        step="pca_analysis"
+    )
+
+    print("\n### PCA Analysis Completed Successfully ###")

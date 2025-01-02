@@ -1,0 +1,89 @@
+import os
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import roc_curve, auc
+from utils.visualizations import create_visualizations, save_class_distribution, save_auc_curve, save_recommendations_summary
+
+def run_pca_analysis(data_with_dummies, config):
+    print("\n### Step 1: Standardizing Data ###")
+
+    # Select only continuous columns for PCA and scaling
+    feature_columns = [col for col in data_with_dummies.columns if col != config.TARGET_COLUMN]
+
+    # Ensure that only numeric columns are selected
+    numeric_columns = data_with_dummies[feature_columns].select_dtypes(include=['number']).columns
+
+    X = data_with_dummies[numeric_columns]
+    y = data_with_dummies[config.TARGET_COLUMN]
+
+    # Standardize the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Perform PCA
+    pca = PCA(n_components=config.PCA_COMPONENTS_RETAINED)
+    X_pca = pca.fit_transform(X_scaled)
+
+    print("\n### Step 2: Data After PCA ###")
+    print(X_pca[:5])  # Print first 5 rows after PCA transformation
+
+    # Plot the explained variance
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, config.PCA_COMPONENTS_RETAINED + 1), pca.explained_variance_ratio_, marker='o')
+    plt.title('Explained Variance of PCA Components')
+    plt.xlabel('Principal Components')
+    plt.ylabel('Explained Variance Ratio')
+
+    # Ensure the directory exists before saving the plot
+    os.makedirs(config.RESULTS_DIR, exist_ok=True)  # Create the directory if it doesn't exist
+
+    explained_variance_path = os.path.join(config.RESULTS_DIR, 'explained_variance.png')
+    plt.savefig(explained_variance_path)  # Save the plot
+    plt.close()  # Close the plot to avoid blocking further execution
+    print(f"Explained variance plot saved to: {explained_variance_path}")
+
+    # Further analysis (splitting data, applying KNN, etc.)
+    X_train, X_test, y_train, y_test = train_test_split(X_pca, y, test_size=config.TEST_SIZE, random_state=config.RANDOM_STATE)
+    knn = KNeighborsClassifier(n_neighbors=config.KNN_CONFIG['n_neighbors'])
+    knn.fit(X_train, y_train)
+
+    y_pred = knn.predict(X_test)
+
+    # Evaluate model accuracy
+    accuracy = (y_pred == y_test).mean()
+    print(f"Model Accuracy: {accuracy:.2f}")
+
+    # Save other relevant plots and summaries
+    # Save Class Distribution
+    class_distribution_path = os.path.join(config.RESULTS_DIR, 'class_distribution.png')
+    save_class_distribution(data_with_dummies, config.TARGET_COLUMN, class_distribution_path)
+    print(f"Class distribution plot saved to: {class_distribution_path}")
+
+    # Save Recommendations Summary
+    recommendations_path = os.path.join(config.RESULTS_DIR, 'recommendations_summary.png')
+    save_recommendations_summary(recommendations_path)
+    print(f"Recommendations summary saved to: {recommendations_path}")
+
+    # Save AUC Curve if applicable
+    try:
+        y_scores = knn.predict_proba(X_test)[:, 1]  # Get probability estimates
+        fpr, tpr, _ = roc_curve(y_test, y_scores)
+        roc_auc = auc(fpr, tpr)
+        print(f"AUC: {roc_auc:.2f}")
+
+        # Save AUC Curve
+        auc_curve_path = os.path.join(config.RESULTS_DIR, 'auc_curve.png')
+        save_auc_curve(y_test, y_scores, auc_curve_path)
+        print(f"AUC curve saved to: {auc_curve_path}")
+
+    except Exception as e:
+        print("Model is not defined. Cannot generate AUC curve.")
+        print(f"Error: {e}")
+
+    # Generate Visualizations
+    create_visualizations(data_with_dummies, config.TARGET_COLUMN, config.INDEPENDENT_VARIABLES, None, None, config, step='pca_analysis')
+
+    print("\n### End of PCA Analysis ###")

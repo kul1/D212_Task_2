@@ -1,0 +1,45 @@
+# General settings
+CONFIG_TYPE = 'pca_analysis'
+
+# Number of PCA components to retain
+PCA_COMPONENTS_RETAINED = 2
+
+# Define column types
+COLUMN_CONFIG = {
+    'Age': 'continuous',
+    'Income': 'continuous',
+    'VitD_levels': 'continuous',
+    'Doc_visits': 'continuous',
+    'Overweight': 'categorical',  # Example target
+    'Stroke': 'categorical',
+    'Arthritis': 'categorical',
+    'Diabetes': 'categorical',
+    'Hyperlipidemia': 'categorical',
+    'BackPain': 'categorical',
+    'Anxiety': 'categorical',
+    'Allergic_rhinitis': 'categorical',
+    'Reflux_esophagitis': 'categorical',
+    'Asthma': 'categorical'
+}
+
+# Define continuous and categorical columns
+CONTINUOUS_COLUMNS = ['Age', 'Income', 'VitD_levels', 'Doc_visits']
+CATEGORICAL_COLUMNS = [col for col, col_type in COLUMN_CONFIG.items() if col_type == 'categorical']
+
+# Specify the target column
+TARGET_COLUMN = 'Overweight_Yes'
+
+# Other configurations
+TEST_SIZE = 0.2
+RANDOM_STATE = 42
+
+# Directory paths for raw and prepared data
+RAW_DATA_DIR = 'rawdata'
+RAW_DATA_FILE = 'medical_clean.csv'
+PREPARED_DATA_DIR = 'prepared/pca'
+PREPARED_DATA_FILE = 'prepared_data_with_dummies.csv'
+RESULTS_DIR = 'results/pca_analysis'
+VISUALIZATION_DIR = RESULTS_DIR + '/visuals/'
+
+# PCA analysis function
+ANALYSIS_FUNCTION = 'flow.flow_pca_analysis.run_pca_analysis'

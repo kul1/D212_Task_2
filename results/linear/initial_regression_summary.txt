@@ -1,0 +1,41 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:            TotalCharge   R-squared:                       0.716
+Model:                            OLS   Adj. R-squared:                  0.715
+Method:                 Least Squares   F-statistic:                     1676.
+Date:                Mon, 16 Sep 2024   Prob (F-statistic):               0.00
+Time:                        17:58:58   Log-Likelihood:                -84772.
+No. Observations:               10000   AIC:                         1.696e+05
+Df Residuals:                    9984   BIC:                         1.697e+05
+Df Model:                          15                                         
+Covariance Type:            nonrobust                                         
+==========================================================================================
+                             coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------------------
+const                   3648.1752     50.454     72.306      0.000    3549.275    3747.076
+Age                        0.2720      0.564      0.482      0.630      -0.834       1.378
+Income                    -0.0002      0.001     -0.298      0.766      -0.001       0.001
+Overweight_Yes           -27.1305     25.646     -1.058      0.290     -77.402      23.141
+Soft_drink_Yes            -8.5825     26.628     -0.322      0.747     -60.778      43.613
+ReAdmis_Yes             3813.4175     24.150    157.904      0.000    3766.078    3860.757
+HighBlood_Yes             77.9847     23.677      3.294      0.001      31.573     124.396
+Stroke_Yes               -19.6546     29.137     -0.675      0.500     -76.769      37.460
+Arthritis_Yes            117.5619     24.294      4.839      0.000      69.941     165.183
+Diabetes_Yes              69.6292     26.106      2.667      0.008      18.456     120.802
+Hyperlipidemia_Yes        67.4729     24.623      2.740      0.006      19.206     115.740
+BackPain_Yes             109.0126     23.667      4.606      0.000      62.621     155.404
+Anxiety_Yes              133.9208     24.925      5.373      0.000      85.063     182.778
+Allergic_rhinitis_Yes     99.5923     23.820      4.181      0.000      52.900     146.285
+Reflux_esophagitis_Yes    94.7294     23.642      4.007      0.000      48.386     141.072
+Asthma_Yes                -2.6077     25.679     -0.102      0.919     -52.945      47.729
+==============================================================================
+Omnibus:                     1631.100   Durbin-Watson:                   1.310
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):             2544.691
+Skew:                           1.171   Prob(JB):                         0.00
+Kurtosis:                       3.787   Cond. No.                     2.01e+05
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 2.01e+05. This might indicate that there are
+strong multicollinearity or other numerical problems.

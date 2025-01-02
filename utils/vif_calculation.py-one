@@ -1,0 +1,59 @@
+# Updated utils/vif_calculation.py
+
+import pandas as pd
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from utils.config_loader import load_config  # Import the config loader
+
+def calculate_vif(data):
+    """
+    Calculate Variance Inflation Factor (VIF) to detect multicollinearity.
+
+    Parameters:
+    - data (pd.DataFrame): The dataset with predictors.
+
+    Returns:
+    - vif_filtered_vars (list): List of variables filtered by VIF based on the configured threshold.
+    - vif_data (pd.DataFrame): DataFrame containing VIF scores for all predictors.
+    """
+    # Load configuration settings
+    config = load_config()  # Load the configuration
+
+    target_var = config.TARGET_COLUMN
+    vif_threshold = config.VIF_THRESHOLD  # Get VIF threshold from config
+
+    print(f"\n### Starting VIF Calculation ###")
+
+    # Drop the target variable and calculate VIF for each predictor
+    if target_var in data.columns:
+        predictors = data.drop(columns=[target_var])
+    else:
+        predictors = data  # If not present, use all predictors
+
+    # Remove constant columns
+    predictors = predictors.loc[:, (predictors != predictors.iloc[0]).any()]
+
+    # Check for duplicates and remove them
+    print("### Checking for Duplicate Columns ###")
+    before_cols = predictors.columns.tolist()
+    predictors = predictors.loc[:, ~predictors.columns.duplicated()]
+    after_cols = predictors.columns.tolist()
+
+    if len(before_cols) != len(after_cols):
+        print(f"Removed duplicate columns. Remaining columns: {after_cols}")
+
+    # Calculate VIF
+    vif_data = pd.DataFrame()
+    vif_data['Variable'] = predictors.columns
+    vif_data['VIF'] = [variance_inflation_factor(predictors.values, i) for i in range(predictors.shape[1])]
+
+    # Display all VIF values
+    print("\n### Calculated VIF Values for Each Predictor ###")
+    print(vif_data)
+
+    # Filter out predictors with high VIF based on threshold set in the config
+    vif_filtered_vars = vif_data[vif_data['VIF'] <= vif_threshold]['Variable'].tolist()
+
+    # Display the filtered variables
+    print(f"\n### Filtered Predictors with VIF <= {vif_threshold} ###\n{vif_filtered_vars}")
+
+    return vif_filtered_vars, vif_data

@@ -1,0 +1,189 @@
+# File: utils/visualizations.py
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import os
+import pandas as pd
+from sklearn.metrics import roc_curve, auc
+
+def save_confusion_matrix(conf_matrix, labels, filepath):
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.savefig(filepath)
+    plt.clf()
+    print(f"Confusion Matrix saved to: {filepath}")
+
+def save_classification_report(report, filepath):
+    plt.figure(figsize=(10, 8))
+
+    # Extract class labels and their corresponding F1 scores
+    class_labels = list(report.keys())
+    f1_scores = []
+
+    for label in class_labels:
+        if isinstance(report[label], dict):  # Check if it's a class label
+            f1_scores.append(report[label]['f1-score'])
+        else:  # Handle any non-dict cases
+            f1_scores.append(0)  # Default score for non-class entries
+
+    # Adjust lengths to match
+    f1_scores = f1_scores[:len(class_labels)]  # Ensure they match in length
+    sns.barplot(x=class_labels, y=f1_scores)
+
+    plt.title('F1 Score for Each Class')
+    plt.ylabel('F1 Score')
+    plt.xlabel('Classes')
+    plt.xticks(rotation=45)
+    plt.savefig(filepath)
+    plt.clf()
+    print(f"Classification Report saved to: {filepath}")
+
+def save_class_distribution(data, target_var, filepath):
+    plt.figure(figsize=(8, 6))
+    sns.countplot(x=target_var, data=data)
+    plt.title('Class Distribution')
+    plt.xlabel(target_var)
+    plt.ylabel('Count')
+    plt.savefig(filepath)
+    plt.clf()
+    print(f"Class Distribution saved to: {filepath}")
+
+def save_auc_curve(y_true, y_scores, filepath):
+    fpr, tpr, _ = roc_curve(y_true, y_scores)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC Curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='red', linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.0])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.savefig(filepath)
+    plt.clf()
+    print(f"AUC Curve saved to: {filepath}")
+
+def save_recommendations_summary(filepath):
+    plt.figure(figsize=(10, 4))
+    plt.text(0.5, 0.5, "Recommendations:\n\n- Implement health monitoring programs\n- Focus on factors like age and income\n- Increase awareness about high blood pressure\n\n",
+             fontsize=14, ha='center', va='center')
+    plt.axis('off')
+    plt.savefig(filepath)
+    plt.clf()
+    print(f"Recommendations Summary saved to: {filepath}")
+
+def create_visualizations(data, target_var, predictor_vars, conf_matrix, report, config, step, model=None):
+    """
+    Create visualizations for the given dataset and save them.
+
+    Parameters:
+    - data (pd.DataFrame): The data used for the visualization.
+    - target_var (str): The target variable for the classification.
+    - predictor_vars (list): The list of predictor variables.
+    - conf_matrix: Confusion matrix from the classification report.
+    - report: Classification report from the model evaluation.
+    - config: The configuration object containing directory information.
+    - step (str): A string representing the step in the analysis (e.g., 'after_cleaning', 'after_vif').
+    - model: (optional) The classification model object if visualizing diagnostics and AUC curve.
+    """
+
+    # Directories for visualizations, using config for directory structure
+    results_dir = config.RESULTS_DIR
+    univariate_dir = os.path.join(results_dir, 'visuals', 'univariate', step)
+    bivariate_dir = os.path.join(results_dir, 'visuals', 'bivariate', step)
+    heatmap_dir = os.path.join(results_dir, 'visuals', 'heatmap', step)
+    os.makedirs(univariate_dir, exist_ok=True)
+    os.makedirs(bivariate_dir, exist_ok=True)
+    os.makedirs(heatmap_dir, exist_ok=True)
+
+    # Univariate Visualizations
+    print("\n--- Creating Univariate Visualizations ---")
+    for var in [target_var] + predictor_vars:
+        try:
+            plt.figure(figsize=(10, 6))
+            if pd.api.types.is_numeric_dtype(data[var]):
+                sns.histplot(data[var], kde=True)
+                plt.title(f"Distribution of {var} - {step}")
+                hist_path = os.path.join(univariate_dir, f"{var}_histogram_{step}.png")
+                plt.savefig(hist_path)
+                plt.close()
+                print(f"Histogram for {var} saved to: {hist_path}")
+            else:
+                sns.countplot(x=data[var])
+                plt.title(f"Distribution of {var} - {step}")
+                countplot_path = os.path.join(univariate_dir, f"{var}_countplot_{step}.png")
+                plt.savefig(countplot_path)
+                plt.close()
+                print(f"Countplot for {var} saved to: {countplot_path}")
+        except Exception as e:
+            print(f"Error creating univariate plot for {var}: {e}")
+
+    # Bivariate Visualizations
+    print("\n--- Creating Bivariate Visualizations ---")
+    for var in predictor_vars:
+        try:
+            plt.figure(figsize=(10, 6))
+            if pd.api.types.is_numeric_dtype(data[var]):
+                sns.scatterplot(x=data[var], y=data[target_var])
+                plt.title(f"{var} vs {target_var} - {step}")
+                bivariate_path = os.path.join(bivariate_dir, f"{var}_vs_{target_var}_scatter_{step}.png")
+            else:
+                sns.boxplot(x=data[var], y=data[target_var])
+                plt.title(f"{var} vs {target_var} - {step}")
+                bivariate_path = os.path.join(bivariate_dir, f"{var}_vs_{target_var}_boxplot_{step}.png")
+
+            plt.savefig(bivariate_path)
+            plt.close()
+            print(f"Bivariate plot for {var} vs {target_var} saved to: {bivariate_path}")
+        except Exception as e:
+            print(f"Error creating bivariate plot for {var}: {e}")
+
+    # Generate the confusion matrix visualization
+    save_confusion_matrix(conf_matrix, config.CLASS_LABELS, os.path.join(heatmap_dir, 'confusion_matrix.png'))
+
+    # Save the classification report visualization
+    save_classification_report(report, os.path.join(heatmap_dir, 'classification_report.png'))
+
+    # AUC Curve visualization
+    if model is not None:  # Check if model is provided
+        try:
+            # Assuming you have the actual labels and predictions
+            y_scores = model.predict_proba(data[predictor_vars])[:, 1]  # Get probability estimates
+            auc_curve_path = os.path.join(heatmap_dir, 'auc_curve.png')
+            fpr, tpr, _ = roc_curve(data[target_var], y_scores)
+            plt.figure(figsize=(10, 6))
+            plt.plot(fpr, tpr, color='blue', lw=2, label='ROC curve (area = %0.2f)' % auc(fpr, tpr))
+            plt.plot([0, 1], [0, 1], color='red', linestyle='--')
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.0])
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.title('Receiver Operating Characteristic')
+            plt.legend(loc="lower right")
+            plt.savefig(auc_curve_path)
+            plt.close()
+            print(f"AUC Curve saved to: {auc_curve_path}")
+        except Exception as e:
+            print(f"Error creating AUC curve: {e}")
+
+    # Heatmap for correlations
+    if predictor_vars:
+        try:
+            print("\n--- Creating Heatmap for Correlations ---")
+            plt.figure(figsize=(12, 8))
+            corr_matrix = data[predictor_vars + [target_var]].corr()
+            sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt='.2f')
+            plt.title(f"Correlation Heatmap - {step}")
+            heatmap_path = os.path.join(heatmap_dir, f"heatmap_{step}.png")
+            plt.savefig(heatmap_path)
+            plt.close()
+            print(f"Heatmap saved to: {heatmap_path}")
+        except Exception as e:
+            print(f"Error creating heatmap: {e}")
+
+

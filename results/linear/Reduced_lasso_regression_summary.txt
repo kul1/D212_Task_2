@@ -1,0 +1,28 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:            TotalCharge   R-squared:                       0.712
+Model:                            OLS   Adj. R-squared:                  0.712
+Method:                 Least Squares   F-statistic:                 1.235e+04
+Date:                Mon, 16 Sep 2024   Prob (F-statistic):               0.00
+Time:                        17:58:58   Log-Likelihood:                -84840.
+No. Observations:               10000   AIC:                         1.697e+05
+Df Residuals:                    9997   BIC:                         1.697e+05
+Df Model:                           2                                         
+Covariance Type:            nonrobust                                         
+===============================================================================
+                  coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------
+const        3916.2733     24.072    162.687      0.000    3869.086    3963.460
+Income         -0.0001      0.001     -0.236      0.813      -0.001       0.001
+ReAdmis_Yes  3816.8106     24.287    157.157      0.000    3769.204    3864.417
+==============================================================================
+Omnibus:                     1607.132   Durbin-Watson:                   1.315
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):             2491.813
+Skew:                           1.160   Prob(JB):                         0.00
+Kurtosis:                       3.773   Cond. No.                     1.06e+05
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 1.06e+05. This might indicate that there are
+strong multicollinearity or other numerical problems.

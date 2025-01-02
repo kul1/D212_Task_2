@@ -1,0 +1,27 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                ReAdmis   R-squared:                       0.000
+Model:                            OLS   Adj. R-squared:                 -0.000
+Method:                 Least Squares   F-statistic:                    0.3699
+Date:                Sat, 21 Sep 2024   Prob (F-statistic):              0.543
+Time:                        15:04:26   Log-Likelihood:                -6890.2
+No. Observations:               10000   AIC:                         1.378e+04
+Df Residuals:                    9998   BIC:                         1.380e+04
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          0.3717      0.009     40.443      0.000       0.354       0.390
+Income     -1.275e-07    2.1e-07     -0.608      0.543   -5.38e-07    2.83e-07
+==============================================================================
+Omnibus:                    44158.750   Durbin-Watson:                   0.818
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):             1705.211
+Skew:                           0.552   Prob(JB):                         0.00
+Kurtosis:                       1.305   Cond. No.                     8.36e+04
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 8.36e+04. This might indicate that there are
+strong multicollinearity or other numerical problems.

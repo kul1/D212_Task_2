@@ -1,0 +1,61 @@
+# utils/config_loader.py
+import importlib
+import os
+
+def load_config(config_file='config.py'):
+    """
+    Load the configuration dynamically based on the config file.
+
+    Parameters:
+    - config_file (str): Path to the main configuration file.
+
+    Returns:
+    - module: The dynamically loaded configuration module.
+    """
+    config_module_name = None
+
+    # Ensure the config file exists
+    if not os.path.exists(config_file):
+        raise FileNotFoundError(f"The config file '{config_file}' was not found.")
+
+    try:
+        with open(config_file, 'r') as file:
+            for line in file:
+                line = line.strip()
+                if line.startswith("CONFIG_TYPE"):
+                    config_type_value = line.split('=')[1].split('#')[0].strip().strip('"').strip("'")
+                    config_module_name = f"config_{config_type_value}"
+                    break
+
+        if not config_module_name:
+            raise ValueError(f"No valid CONFIG_TYPE found in '{config_file}'")
+
+        config_module_path = f"{config_module_name}.py"
+        if not os.path.exists(config_module_path):
+            raise FileNotFoundError(f"The configuration module '{config_module_path}' does not exist.")
+
+        # Dynamically import the specified configuration module
+        config_module = importlib.import_module(config_module_name)
+
+    except Exception as e:
+        raise Exception(f"Error loading config module from '{config_file}': {e}")
+
+    # Validate loaded module has expected attributes
+    required_attributes = ["RESULTS_DIR", "VISUALS_DIR", "CONFIG_TYPE"]
+    for attr in required_attributes:
+        if not hasattr(config_module, attr):
+            raise AttributeError(f"Config module is missing required attribute: {attr}")
+
+    return config_module
+
+def ensure_directories(config):
+    """
+    Ensure directories defined in the config exist.
+
+    Parameters:
+    - config: The loaded configuration module.
+    """
+    directories = [config.RESULTS_DIR, config.VISUALS_DIR]
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
+        print(f"Ensured directory exists: {directory}")

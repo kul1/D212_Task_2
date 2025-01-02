@@ -1,0 +1,55 @@
+import os
+import pandas as pd
+import warnings
+from utils.config_loader import load_config, import_flow_function
+from utils.directory_setup import setup_directories
+from utils.clean_and_create_dummies import clean_and_create_dummies  # Ensure this import is correct
+
+# Ignore warnings
+warnings.filterwarnings("ignore")
+
+# Enable or disable detailed debug mode
+debug_mode = True
+
+def log_debug(message):
+    """Logs messages only if debug_mode is True."""
+    if debug_mode:
+        print(message)
+
+def main():
+    # Step 1: Load configuration
+    config = load_config()  # Load configuration
+    print(dir(config))  # Check available attributes in the config module
+
+    # Step 2: Setup directories
+    setup_directories(config)
+
+    # Step 3: Load raw data
+    data = pd.read_csv(os.path.join(config.RAW_DATA_DIR, config.RAW_DATA_FILE))
+    print(f"\n### Step 3: Loading Raw Data from {config.RAW_DATA_FILE} ###")
+    log_debug(f"Raw data loaded from {config.RAW_DATA_FILE}")
+
+    # Step 4: Clean the data and create dummies
+    data_with_dummies = clean_and_create_dummies(data, config)
+    log_debug(f"\n### Data After Cleaning and Creating Dummies ###\n{data_with_dummies.head()}")
+
+    # Print summary statistics for comparison
+    print("\n### Summary Statistics for Prepared Data ###")
+    print(data_with_dummies.describe(include='all'))
+
+    # Step 5: Save the cleaned data
+    prepared_data_file = os.path.join(config.PREPARED_DATA_DIR, config.PREPARED_DATA_FILE)
+    data_with_dummies.to_csv(prepared_data_file, index=False)
+    print(f"\n### Step 5: Data saved to {prepared_data_file} ###")
+
+    # Step 6: Execute the analysis based on the loaded configuration
+    flow_function = config.ANALYSIS_FUNCTION  # Directly get the analysis function from config
+    run_analysis = import_flow_function(flow_function)  # Import the function dynamically
+
+    # Step 7: Execute the analysis
+    model = run_analysis(data_with_dummies, config)  # Call the analysis function, passing only data and config
+
+    print("\n### End of Script ###")
+
+if __name__ == "__main__":
+    main()

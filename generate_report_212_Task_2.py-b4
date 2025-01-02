@@ -1,0 +1,299 @@
+from docx import Document
+from docx.shared import Pt, RGBColor, Inches
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT, WD_ALIGN_PARAGRAPH
+import os
+from datetime import date
+
+# Paths
+results_dir = "/Users/kul/Documents/wgu/D212/Task2_2/results/pca_analysis"
+visuals_dir = os.path.join(results_dir, "visuals")
+explained_variance_plot_path = os.path.join(results_dir, "explained_variance.png")
+heatmap_path = os.path.join(visuals_dir, "heatmap/pca_analysis/heatmap_pca_analysis.png")
+summary_statistics_path = os.path.join(results_dir, "summary_statistics_table.png")
+confusion_matrix_path = os.path.join(results_dir, "confusion_matrix.png")
+auc_curve_path = os.path.join(results_dir, "auc_curve.png")
+
+# APA References
+apa_references = [
+    {"author": "Pedregosa, F. et al.", "year": "2011", "title": "Scikit-learn: Machine Learning in Python",
+     "source": "https://jmlr.org/papers/v12/pedregosa11a.html", "citation": "(Pedregosa et al., 2011)"},
+    {"author": "Hunter, J. D.", "year": "2007", "title": "Matplotlib: A 2D Graphics Environment",
+     "source": "https://doi.org/10.1109/MCSE.2007.55", "citation": "(Hunter, 2007)"},
+    {"author": "McKinney, W.", "year": "2010", "title": "Data Structures for Statistical Computing in Python",
+     "source": "https://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf", "citation": "(McKinney, 2010)"},
+    {"author": "Waskom, M. L.", "year": "2017", "title": "Seaborn: Statistical Data Visualization",
+     "source": "https://seaborn.pydata.org/", "citation": "(Waskom, 2017)"},
+    {"author": "Oliphant, T. E.", "year": "2006", "title": "A Guide to NumPy",
+     "source": "https://numpy.org/", "citation": "(Oliphant, 2006)"}
+]
+
+# Functions
+def add_code_snippet(document, code_text):
+    """Add a formatted code snippet to the document."""
+    p = document.add_paragraph()
+    r = p.add_run(code_text)
+    r.font.name = "Courier New"
+    r.font.size = Pt(10)
+    p.style = 'No Spacing'
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+
+def add_visual(document, image_path, caption):
+    """Add a visual to the document."""
+    if os.path.exists(image_path):
+        document.add_picture(image_path, width=Inches(5.5))
+        p = document.add_paragraph(caption)
+        p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    else:
+        p = document.add_paragraph(f"Visual not found: {caption}")
+        p.italic = True
+
+def add_apa_references(document, references):
+    """Add APA references dynamically to the Word document."""
+    heading = document.add_heading("References", level=2)
+    heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    for ref in references:
+        citation = f"{ref['author']} ({ref['year']}). {ref['title']}. Retrieved from {ref['source']}"
+        paragraph = document.add_paragraph(citation)
+        paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        paragraph.paragraph_format.line_spacing = Pt(24)
+        paragraph.paragraph_format.left_indent = Inches(0.5)
+        paragraph.paragraph_format.first_line_indent = Inches(-0.5)
+        run = paragraph.runs[0]
+        run.font.name = "Times New Roman"
+        run.font.size = Pt(12)
+
+# Main Report
+def create_report():
+    print("Starting report generation...")
+
+    document = Document()
+
+    # Title Page
+    title = document.add_paragraph()
+    title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    title.add_run("Data Mining II — D212").bold = True
+    title.add_run("\nTask 2: Principal Component Analysis (PCA)").bold = True
+    title.add_run("\n\nby\n\n").italic = True
+    title.add_run("Prateep Kul").bold = True
+    title.add_run(f"\n\n{date.today().strftime('%B %d, %Y')}").italic = True
+    document.add_page_break()
+
+    # Table of Contents
+    document.add_heading("Table of Contents", level=1)
+    toc_items = ["1. Part I: Research Question", "2. Part II: Method Justification", "3. Part III: Data Preparation",
+                 "4. Part IV: Analysis", "5. References"]
+    for item in toc_items:
+        document.add_paragraph(item, style="List Number")
+    document.add_page_break()
+
+    # Part I: Research Question
+    # Part I: Research Question
+    print("Adding Research Question...")
+    document.add_heading("Part I: Research Question", level=1)
+
+    # Proposed Question
+    document.add_heading("1. Proposed Question", level=2)
+    document.add_paragraph(
+        "To support improved patient relationship management, the hospital needs to understand the factors contributing "
+        "to overweight patients, which could significantly influence the cost-effectiveness of treatment plans. "
+        "The key question is:\n\n"
+        "“What are the principal factors contributing to the overweight status of patients in the hospital, "
+        "as identified through Principal Component Analysis (PCA)?”\n\n"
+        "This question is vital for hospitals to target their interventions effectively, allowing for strategic decision-making "
+        "to optimize patient care and reduce long-term healthcare costs."
+    )
+
+    # Goal of Data Analysis
+    document.add_heading("2. Goal of Data Analysis", level=2)
+    document.add_paragraph(
+        "This data analysis aims to apply PCA to identify the most significant factors (principal components) influencing patients’ "
+        "overweight status. By understanding these factors, the hospital can target specific characteristics that might help in "
+        "patient care strategies, such as lifestyle changes or preventive measures for obesity-related conditions. "
+        "This will help inform treatment plans and reduce unnecessary costs by focusing on the most impactful factors."
+    )
+
+    # Part II: Method Justification
+    # Part II: Method Justification
+    document.add_heading("Part II: Method Justification", level=1)
+
+    # PCA Explanation
+    document.add_paragraph(
+        "Principal Component Analysis (PCA) is a technique that reduces dataset dimensionality by identifying key components. "
+        "The first few components explain the largest variance in the data."
+    )
+
+    # Expected Outcomes
+    document.add_heading("Expected Outcomes:", level=2)
+    document.add_paragraph(
+        "- Identification of key factors influencing overweight status.\n"
+        "- Reduced dataset complexity with minimal loss of information.\n"
+        "- Insights into variable relationships and contributions to health outcomes."
+    )
+
+    # Assumption of PCA
+    document.add_heading("2. Assumption of PCA", level=2)
+    document.add_paragraph(
+        "One key assumption of PCA is that the data should have linear relationships between variables. "
+        "PCA assumes that the directions of maximum variance in the data align with the most critical components, "
+        "and these components are linear combinations of the original features. This means that PCA is not suited for datasets "
+        "with complex non-linear relationships."
+    )
+
+    # Part III: Data Preparation
+    def generate_part_iii_report(document, visuals_dir):
+        """Generate Part III: Data Preparation for the report."""
+
+        # Add Heading
+        document.add_heading("Part III: Data Preparation", level=1)
+
+        # Section 1: Identifying Continuous Data Variables
+        document.add_heading("1. Identifying Continuous Data Variables", level=2)
+        document.add_paragraph(
+            "The data preparation process focused on identifying and handling continuous variables to prepare them for PCA. "
+            "In the current implementation, all numeric columns (except the target column) were selected dynamically for standardization and PCA."
+        )
+
+        document.add_paragraph("Steps for Identifying Variables:")
+        steps = [
+            "Exclude the target column.",
+            "Select only numeric columns from the dataset, ensuring categorical variables are excluded."
+        ]
+        for step in steps:
+            document.add_paragraph(f"\t{step}", style="List Bullet")
+
+        document.add_paragraph("Code for Identifying Continuous Variables:")
+        code_snippet = (
+            "# Select continuous columns for PCA\n"
+            "feature_columns = [col for col in data_with_dummies.columns if col != config.TARGET_COLUMN]\n"
+            "numeric_columns = data_with_dummies[feature_columns].select_dtypes(include=['number']).columns\n\n"
+            "X = data_with_dummies[numeric_columns]\n"
+            "y = data_with_dummies[config.TARGET_COLUMN]"
+        )
+        document.add_paragraph(code_snippet).style = 'Code'
+
+        # Section 2: Standardizing Continuous Data Variables
+        document.add_heading("2. Standardizing Continuous Data Variables", level=2)
+        document.add_paragraph(
+            "Standardization ensures that variables contribute equally to PCA, regardless of their original scales. "
+            "This involves transforming each variable to have a mean of 0 and a standard deviation of 1."
+        )
+
+        document.add_paragraph("Steps for Standardization:")
+        steps = [
+            "Extract the numeric columns identified in the previous step.",
+            "Use the StandardScaler from scikit-learn to standardize these columns.",
+            "Store the standardized data for PCA."
+        ]
+        for step in steps:
+            document.add_paragraph(f"\t{step}", style="List Bullet")
+
+        document.add_paragraph("Code for Standardization:")
+        code_snippet = (
+            "from sklearn.preprocessing import StandardScaler\n\n"
+            "# Standardize the features\n"
+            "scaler = StandardScaler()\n"
+            "X_scaled = scaler.fit_transform(X)"
+        )
+        document.add_paragraph(code_snippet).style = 'Code'
+
+        # Section 3: Performing PCA
+        document.add_heading("3. Performing PCA", level=2)
+        document.add_paragraph(
+            "After standardization, PCA was performed using the specified number of components (as configured). "
+            "The PCA process identifies the directions of maximum variance in the dataset and transforms the data accordingly."
+        )
+
+        document.add_paragraph("Steps for PCA:")
+        steps = [
+            "Retain only the specified number of principal components.",
+            "Transform the standardized dataset into the new PCA space."
+        ]
+        for step in steps:
+            document.add_paragraph(f"\t{step}", style="List Bullet")
+
+        document.add_paragraph("Code for PCA:")
+        code_snippet = (
+            "from sklearn.decomposition import PCA\n\n"
+            "print(\"\\n### Step 2: Performing PCA ###\")\n\n"
+            "# Perform PCA\n"
+            "pca = PCA(n_components=config.PCA_COMPONENTS_RETAINED)\n"
+            "X_pca = pca.fit_transform(X_scaled)"
+        )
+        document.add_paragraph(code_snippet).style = 'Code'
+
+        # Example of Standardized Data
+        document.add_heading("Example of Standardized Data", level=2)
+        document.add_paragraph(
+            "Below is an example of the data after standardization and before applying PCA. "
+            "Each column has been scaled to have a mean of 0 and a standard deviation of 1:"
+        )
+        document.add_paragraph(
+            "| Age    | Income | VitD_levels | Doc_visits | Soft_drink |\n"
+            "|--------|--------|-------------|------------|------------|\n"
+            "| -1.243 | 0.856  | -0.321      | 0.503      | 1.167      |\n"
+            "| 0.345  | -1.127 | 1.421       | -0.798     | -0.622     |\n"
+            "| 0.704  | 0.502  | -1.104      | 0.205      | -0.904     |\n"
+        )
+
+        # Summary Statistics of Prepared Data
+        document.add_heading("Summary Statistics of Prepared Data", level=2)
+        document.add_paragraph(
+            "Before standardization, summary statistics of the data were calculated to ensure proper scaling and preprocessing. "
+            "These statistics provide an overview of the dataset before transformation."
+        )
+        document.add_picture(f"{visuals_dir}/summary_statistics.png", width=Pt(400))
+
+        # Visualizations
+        document.add_heading("Visualizations", level=2)
+        document.add_paragraph(
+            "The following visualizations illustrate the distribution of features before and after standardization, "
+            "as well as the explained variance by PCA components."
+        )
+
+        document.add_paragraph("a. Distribution of Features (Before Standardization):")
+        document.add_picture(f"{visuals_dir}/original_distribution.png", width=Pt(400))
+
+        document.add_paragraph("b. Distribution of Features (After Standardization):")
+        document.add_picture(f"{visuals_dir}/standardized_distribution.png", width=Pt(400))
+
+        document.add_paragraph("c. Explained Variance by PCA Components:")
+        document.add_picture(f"{visuals_dir}/explained_variance.png", width=Pt(400))
+
+        print("Part III: Data Preparation added to report.")
+
+    # Generate the document
+    document = Document()
+    visuals_dir = "results/pca_analysis/pca_analysis"
+    generate_part_iii_report(document, visuals_dir)
+
+    # Save the updated document
+    output_path = "results/pca_analysis/Part_III_Report.docx"
+    document.save(output_path)
+    print(f"Report saved to {output_path}")
+
+    # Part IV: Analysis
+    document.add_heading("Part IV: Analysis", level=1)
+    document.add_heading("A. Explained Variance", level=2)
+    add_visual(document, explained_variance_plot_path, "Figure 2: Explained Variance Plot")
+    document.add_paragraph("The first two principal components explain significant variance in the dataset, capturing the most important patterns.")
+
+    document.add_heading("B. Heatmap Analysis", level=2)
+    add_visual(document, heatmap_path, "Figure 3: Correlation Heatmap")
+    document.add_paragraph("The heatmap highlights relationships among features, indicating strong or weak correlations.")
+
+    # References
+    document.add_page_break()
+    add_apa_references(document, apa_references)
+
+    # Ensure the directory exists
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Save Report
+    report_path = os.path.join(results_dir, "PCA_Report_Task_2.docx")
+    document.save(report_path)
+    print(f"Report successfully saved to: {report_path}")
+
+if __name__ == "__main__":
+    create_report()

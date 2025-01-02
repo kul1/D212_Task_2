@@ -1,0 +1,156 @@
+import os
+import pandas as pd
+import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from data_encoding import create_dummies
+from utils.data_loader import save_prepared_data_with_dummies
+from data_cleaning import clean_data
+from sklearn.model_selection import train_test_split
+
+def clean_and_create_dummies(data, config):
+    """
+    Clean the data and create dummy variables for the selected categorical columns.
+    Only the columns specified in the config file will be processed.
+
+    Parameters:
+    - data (pd.DataFrame): The raw dataset.
+    - config: The configuration object/module containing column information.
+
+    Returns:
+    - pd.DataFrame: The cleaned dataset with dummy variables.
+    """
+
+    # Step 1: Clean the raw data (imputation, outlier handling, etc.)
+    data_cleaned = clean_data(data)
+
+    print("\n### Step 1: Data After Cleaning ###")
+    print(data_cleaned.head())  # Display the first few rows of cleaned data
+
+    # Step 2: Filter the dataset to include only the relevant columns in the config
+    selected_columns = config.CONTINUOUS_COLUMNS + config.CATEGORICAL_COLUMNS + [config.TARGET_COLUMN]
+    data_filtered = data_cleaned[selected_columns]
+
+    print("\n### Step 2: Data After Filtering Selected Columns ###")
+    print(data_filtered.head())  # Display the first few rows of filtered data
+
+    # Step 2.1: Apply target variable mapping if specified in the config (for logistic regression)
+    target_mapping = getattr(config, 'TARGET_VARIABLE_MAPPING', None)
+    if target_mapping:
+        print(f"\n### Step 2.1: Applying Target Variable Mapping ###")
+        data_filtered.loc[:, config.TARGET_COLUMN] = data_filtered[config.TARGET_COLUMN].map(target_mapping)
+        print(f"Converted target column '{config.TARGET_COLUMN}' using mapping: {target_mapping}")
+        print(data_filtered[config.TARGET_COLUMN].head())  # Display the first few rows of the target column after mapping
+
+    # Step 3: Create dummies for categorical columns specified in the config
+    data_with_dummies = create_dummies(data_filtered, config.CATEGORICAL_COLUMNS, config.TARGET_COLUMN)
+
+    print("\n### Step 3: Data After Creating Dummy Variables ###")
+    print(data_with_dummies.head())  # Display the first few rows after dummy creation
+    print("Columns after dummy variable creation:", data_with_dummies.columns.tolist())
+
+    # Additional checks for target variable
+    if 'ReAdmis_Yes' not in data_with_dummies.columns:
+        print(f"Warning: ReAdmis_Yes column is not present in the DataFrame after dummy creation.")
+
+    # Step 4: Remove duplicate columns if any
+    data_with_dummies = data_with_dummies.loc[:, ~data_with_dummies.columns.duplicated()]
+    print("DataFrame columns after removing duplicates:", data_with_dummies.columns.tolist())  # Debugging
+
+    # Step 5: Convert boolean columns to integers
+    print("\n### Step 5: Converting Boolean Columns to Integers ###")
+    data_with_dummies = data_with_dummies.apply(lambda col: col.astype(int) if col.dtype == 'bool' else col)
+    print(data_with_dummies.head())  # Display the first few rows after numeric conversion
+
+    # Step 6: Ensure all columns are numeric
+    print("\n### Step 6: Ensuring All Columns Are Numeric ###")
+    data_with_dummies = data_with_dummies.apply(pd.to_numeric, errors='coerce')
+    print(data_with_dummies.dtypes)  # Display data types to verify numeric conversion
+
+    # Step 7: Check for any remaining NaNs in the predictor or target columns
+    predictor_vars = [col for col in data_with_dummies.columns if col != config.TARGET_COLUMN]
+
+    print("\n### Step 7: Checking for NaNs or Invalid Values in Predictor and Target Columns ###")
+    print("NaNs in predictor columns:\n", data_with_dummies[predictor_vars].isna().sum())
+    print("NaNs in target column:\n", data_with_dummies[config.TARGET_COLUMN].isna().sum())
+
+    # Drop any rows that have NaN values in either the predictor or target columns
+    data_with_dummies.dropna(subset=predictor_vars + [config.TARGET_COLUMN], inplace=True)
+    print("\n### Step 8: Data After Dropping Rows with NaN Values ###")
+    print(data_with_dummies.head())  # Display a few rows after dropping NaN rows
+
+    # Check if the DataFrame is still empty after dropping rows
+    if data_with_dummies.empty:
+        raise ValueError("Data after dropping NaN values is empty. Please check the filtering criteria.")
+
+    # Step 8: Standardize Numeric Variables
+    print("\n### Step 8: Standardizing Numeric Variables ###")
+    numeric_columns = config.CONTINUOUS_COLUMNS
+
+    # Print data before standardization
+    print("Data before standardization:")
+    print(data_with_dummies[numeric_columns].head())  # Display the first few rows of numeric data before standardization
+
+    scaler = StandardScaler()
+
+    # Fit and transform the numeric columns
+    data_with_dummies[numeric_columns] = scaler.fit_transform(data_with_dummies[numeric_columns])
+
+    # Print data after standardization
+    print("Data after standardization:")
+    print(data_with_dummies[numeric_columns].head())  # Display the first few rows of standardized data
+
+    # Step 9: Split the data into training and test sets
+    print("\n### Step 9: Splitting the Data into Training and Test Sets ###")
+    X = data_with_dummies[predictor_vars]
+    y = data_with_dummies[config.TARGET_COLUMN]
+
+    # Print the number of records before the split
+    print(f"Total records before splitting: {len(data_with_dummies)}")
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=config.RANDOM_STATE)
+
+    # Print the number of records after the split
+    print(f"Total records after splitting: {len(X_train) + len(X_test)}")
+    print(f"Records in training set: {len(X_train)}")
+    print(f"Records in test set: {len(X_test)}")
+
+    # Saving training and test data
+    train_file = os.path.join(config.PREPARED_DATA_DIR, 'train_data.csv')
+    test_file = os.path.join(config.PREPARED_DATA_DIR, 'test_data.csv')
+
+    train_data = pd.concat([X_train, y_train.reset_index(drop=True)], axis=1)
+    test_data = pd.concat([X_test, y_test.reset_index(drop=True)], axis=1)
+
+    train_data.to_csv(train_file, index=False)
+    test_data.to_csv(test_file, index=False)
+
+    print(f"\n### Training and Test datasets created and saved ###")
+
+    # Step 10: Save the cleaned and encoded data with dummies based on config method (config_linear, config_logistic, etc.)
+    save_prepared_data_with_dummies(
+        data_with_dummies,
+        config.PREPARED_DATA_DIR,  # Dynamic directory path based on config
+        config.PREPARED_DATA_FILE   # Dynamic file name based on config
+    )
+
+    print(f"\n### Data saved to {config.PREPARED_DATA_DIR}/{config.PREPARED_DATA_FILE} ###")
+
+    # Step 10: Split the data into training and test sets
+    X = data_with_dummies[predictor_vars]
+    y = data_with_dummies[config.TARGET_COLUMN]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=config.RANDOM_STATE)
+
+    # Saving training and test data
+    train_file = os.path.join(config.PREPARED_DATA_DIR, 'train_data.csv')
+    test_file = os.path.join(config.PREPARED_DATA_DIR, 'test_data.csv')
+
+    train_data = pd.concat([X_train, y_train.reset_index(drop=True)], axis=1)
+    test_data = pd.concat([X_test, y_test.reset_index(drop=True)], axis=1)
+
+    train_data.to_csv(train_file, index=False)
+    test_data.to_csv(test_file, index=False)
+
+    print(f"\n### Training and Test datasets created and saved ###")
+
+    return data_with_dummies  # Returning cleaned data with dummies
