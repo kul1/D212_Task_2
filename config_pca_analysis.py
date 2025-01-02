@@ -6,7 +6,6 @@ RAW_DATA_FILE = 'medical_clean.csv'
 PREPARED_DATA_DIR = f'prepared/{CONFIG_TYPE}'
 PREPARED_DATA_FILE = f'prepared_data_for_{CONFIG_TYPE}.csv'
 RESULTS_DIR = f'results/{CONFIG_TYPE}'
-VISUALS_DIR = f'{RESULTS_DIR}/visuals'
 
 # Flow function
 FLOW_FUNCTION = f'flow.flow_{CONFIG_TYPE}.run_pca_analysis'

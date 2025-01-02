@@ -1,0 +1,100 @@
+from docx import Document
+from docx.shared import Pt, RGBColor, Inches
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+import os
+from utils.config_loader import load_config
+from datetime import date
+
+# Load the configuration
+config = load_config()
+print(f"Loaded configuration for {config.CONFIG_TYPE}.")
+
+# Initialize the document
+document = Document()
+
+# Utility functions
+def add_code_snippet(document, code_text):
+    """Add a formatted code snippet to the document."""
+    p = document.add_paragraph()
+    r = p.add_run(code_text)
+    r.font.name = "Courier New"
+    r.font.size = Pt(10)
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+
+def add_visual(document, image_path, caption):
+    """Add a visual with caption."""
+    if os.path.exists(image_path):
+        document.add_picture(image_path, width=Inches(5.5))
+        p = document.add_paragraph(caption)
+        p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    else:
+        p = document.add_paragraph(f"Visual not found: {caption}")
+        p.italic = True
+
+def add_apa_references(document, references):
+    """Add APA-style references."""
+    document.add_heading("References", level=1)
+    for ref in references:
+        citation = f"{ref['author']} ({ref['year']}). {ref['title']}. Retrieved from {ref['source']}"
+        document.add_paragraph(citation, style="Normal")
+
+# Main report function
+def create_report():
+    document = Document()
+
+    # Title page
+    document.add_heading("Data Mining II — D212", level=0).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph("Task 2: Principal Component Analysis (PCA)", style='Title').alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph("by").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_paragraph("Prateep Kul").bold = True
+    document.add_paragraph(f"{date.today().strftime('%B %d, %Y')}", style="Normal").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    document.add_page_break()
+
+    # Table of Contents
+    document.add_heading("Table of Contents", level=1)
+    toc = [
+        "1. Part I: Research Question",
+        "2. Part II: Method Justification",
+        "3. Part III: Data Preparation",
+        "4. Part IV: Analysis",
+        "5. References"
+    ]
+    for item in toc:
+        document.add_paragraph(item, style="List Number")
+    document.add_page_break()
+
+    # Part III: Data Preparation
+    document.add_heading("Part III: Data Preparation", level=1)
+    document.add_paragraph(
+        "The following figures illustrate feature distributions before and after standardization, "
+        "and the explained variance by PCA components."
+    )
+
+    # Use hardcoded paths from output logs
+    add_visual(document, "results/pca_analysis/visuals/original_distribution.png",
+               "Figure 2: Distribution of Features (Before Standardization)")
+    add_visual(document, "results/pca_analysis/visuals/standardized_distribution.png",
+               "Figure 3: Distribution of Features (After Standardization)")
+    add_visual(document, "results/pca_analysis/visuals/explained_variance.png",
+               "Figure 4: Explained Variance by PCA Components")
+
+    print("Part III visuals added to report.")
+
+    # Part IV: Analysis
+    document.add_heading("Part IV: Analysis", level=1)
+    add_visual(document, "results/pca_analysis/visuals/correlation_heatmap.png",
+               "Figure 5: Correlation Heatmap")
+    document.add_paragraph(
+        "The analysis demonstrates how principal components capture maximum variance, revealing important patterns."
+    )
+
+    # Save the document
+    os.makedirs("results/pca_analysis", exist_ok=True)
+    output_path = "results/pca_analysis/PCA_Report.docx"
+    document.save(output_path)
+    print(f"Report saved to: {output_path}")
+
+if __name__ == "__main__":
+    create_report()

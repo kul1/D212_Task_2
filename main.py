@@ -9,6 +9,8 @@ def main():
         # Step 1: Load configuration
         config = load_config()
         print(f"Loaded configuration for {config.CONFIG_TYPE}.")
+        print(f"Results directory: {config.RESULTS_DIR}")
+        print(f"Visuals directory: {config.VISUALS_DIR}")
 
         # Step 2: Setup directories
         setup_directories(config)

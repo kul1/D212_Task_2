@@ -8,46 +8,6 @@ def ensure_directory(output_path):
     """Ensure that the directory for the given path exists."""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-def visualize_standardization(data, numeric_columns, scaled_data, visuals_dir):
-    """
-    Create visualizations comparing original and standardized data.
-
-    Parameters:
-    - data (pd.DataFrame): The original dataset.
-    - numeric_columns (list): List of numeric columns to visualize.
-    - scaled_data (np.array): Standardized data.
-    - visuals_dir (str): Path to save the visualizations.
-    """
-    ensure_directory(visuals_dir)
-
-    # Original distribution
-    original_distribution_path = os.path.join(visuals_dir, "original_distribution.png")
-    plt.figure(figsize=(12, 6))
-    for column in numeric_columns:
-        data[column].plot(kind='density', alpha=0.7, label=column)
-    plt.title("Original Data Distribution")
-    plt.xlabel("Value")
-    plt.ylabel("Density")
-    plt.legend(loc="upper right")
-    plt.tight_layout()
-    plt.savefig(original_distribution_path)
-    plt.close()
-    print(f"Original distribution saved to: {original_distribution_path}")
-
-    # Standardized distribution
-    standardized_distribution_path = os.path.join(visuals_dir, "standardized_distribution.png")
-    plt.figure(figsize=(12, 6))
-    for i, column in enumerate(numeric_columns):
-        plt.hist(scaled_data[:, i], bins=30, alpha=0.7, label=column)
-    plt.title("Standardized Data Distribution")
-    plt.xlabel("Value")
-    plt.ylabel("Frequency")
-    plt.legend(loc="upper right")
-    plt.tight_layout()
-    plt.savefig(standardized_distribution_path)
-    plt.close()
-    print(f"Standardized distribution saved to: {standardized_distribution_path}")
-
 def save_confusion_matrix(y_true, y_pred, output_path, class_labels=None):
     """Save a confusion matrix plot to the specified path."""
     ensure_directory(output_path)
@@ -62,27 +22,6 @@ def save_confusion_matrix(y_true, y_pred, output_path, class_labels=None):
     plt.savefig(output_path)
     plt.close()
     print(f"Confusion matrix saved to: {output_path}")
-
-def save_scree_plot(explained_variance_ratio, elbow_point, output_path):
-    """
-    Generate and save a scree plot with an elbow point.
-
-    Parameters:
-    - explained_variance_ratio (list): List of variance explained by each principal component.
-    - elbow_point (int): The index of the elbow point (number of components to retain).
-    - output_path (str): File path to save the scree plot.
-    """
-    plt.figure(figsize=(8, 6))
-    plt.plot(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio, marker='o', label='Individual Variance')
-    plt.axvline(x=elbow_point, color='red', linestyle='--', label='Elbow Point')
-    plt.title('Scree Plot with Elbow Point')
-    plt.xlabel('Principal Component')
-    plt.ylabel('Variance Explained')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(output_path)
-    plt.close()
-    print(f"Scree plot saved to: {output_path}")
 
 def save_class_distribution(data, target_column, output_path):
     """

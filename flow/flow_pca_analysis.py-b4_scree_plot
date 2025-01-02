@@ -9,7 +9,6 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_curve, 
 from utils.visualizations import save_class_distribution, save_auc_curve, save_confusion_matrix, create_visualizations, save_scree_plot
 
 
-
 RESULTS_DIR = "results/pca_analysis"
 VISUALS_DIR = os.path.join(RESULTS_DIR, "visuals")
 os.makedirs(VISUALS_DIR, exist_ok=True)
@@ -48,29 +47,6 @@ def visualize_standardization(data, numeric_columns, scaled_data, visuals_dir):
     plt.savefig(standardized_distribution_path)
     plt.close()
     print(f"Standardized distribution saved to: {standardized_distribution_path}")
-
-
-def save_scree_plot_with_elbow(explained_variance_ratio, visuals_dir):
-    """
-    Generate and save a scree plot with an elbow point.
-    """
-    cumulative_variance = np.cumsum(explained_variance_ratio)
-    elbow_point = np.argmax(cumulative_variance >= 0.8) + 1  # First PC to explain >= 80%
-
-    scree_plot_path = os.path.join(visuals_dir, "scree_plot_with_elbow.png")
-    plt.figure(figsize=(8, 6))
-    plt.plot(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio, marker='o', label='Individual Variance')
-    plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker='x', linestyle='--', label='Cumulative Variance')
-    plt.axvline(x=elbow_point, color='red', linestyle='--', label=f'Elbow Point: {elbow_point}')
-    plt.title('Scree Plot with Elbow Point')
-    plt.xlabel('Principal Component')
-    plt.ylabel('Variance Explained')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(scree_plot_path)
-    plt.close()
-    print(f"Scree plot with elbow point saved to: {scree_plot_path}")
-    return elbow_point
 
 def run_pca_analysis(data, config):
     """
@@ -171,4 +147,3 @@ def run_pca_analysis(data, config):
         print(f"Error generating visualizations: {e}")
 
     print("\n### PCA Analysis Completed Successfully ###")
-

@@ -9,7 +9,7 @@ def load_config(config_file='config.py'):
     - config_file (str): Path to the main configuration file.
 
     Returns:
-    - config (module): The dynamically loaded configuration module with validated attributes.
+    - module: The dynamically loaded configuration module.
     """
     config_module_name = None
 
@@ -18,7 +18,7 @@ def load_config(config_file='config.py'):
         raise FileNotFoundError(f"The config file '{config_file}' was not found.")
 
     try:
-        # Parse the CONFIG_TYPE from the file
+        # Parse the config type from the file
         with open(config_file, 'r') as file:
             for line in file:
                 line = line.strip()
@@ -36,35 +36,44 @@ def load_config(config_file='config.py'):
             raise FileNotFoundError(f"The configuration module '{config_module_path}' does not exist.")
 
         # Dynamically import the specified configuration module
-        config = importlib.import_module(config_module_name)
+        config_module = importlib.import_module(config_module_name)
 
-        # Initialize derived attributes if not present
-        initialize_config_attributes(config)
+        # Validate required attributes
+        validate_config_attributes(config_module)
 
     except Exception as e:
         raise Exception(f"Error loading config module from '{config_file}': {e}")
 
-    return config
+    return config_module
 
 
-def initialize_config_attributes(config):
+def validate_config_attributes(config):
     """
-    Initialize or validate computed attributes in the config module.
+    Validate that the configuration module contains required attributes.
+
+    Parameters:
+    - config: The dynamically loaded configuration module.
+
+    Raises:
+    - AttributeError: If a required attribute is missing.
+    """
+    required_attributes = ["CONFIG_TYPE", "RESULTS_DIR", "VISUALS_DIR"]
+    for attr in required_attributes:
+        if not hasattr(config, attr):
+            raise AttributeError(f"Config module is missing required attribute: {attr}")
+
+
+def ensure_directories(config):
+    """
+    Ensure that the directories specified in the config exist.
 
     Parameters:
     - config: The loaded configuration module.
-
-    Modifies:
-    - Adds `RESULTS_DIR` and `VISUALS_DIR` attributes if they are missing.
     """
-    if not hasattr(config, "RESULTS_DIR"):
-        raise AttributeError("Missing required attribute 'RESULTS_DIR' in config.")
-    if not hasattr(config, "VISUALS_DIR"):
-        config.VISUALS_DIR = os.path.join(config.RESULTS_DIR, "visuals")
-
-    # Ensure directories exist
-    os.makedirs(config.RESULTS_DIR, exist_ok=True)
-    os.makedirs(config.VISUALS_DIR, exist_ok=True)
+    directories = [config.RESULTS_DIR, config.VISUALS_DIR]
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
+        print(f"Ensured directory exists: {directory}")
 
 
 def get_flow_function(config):
