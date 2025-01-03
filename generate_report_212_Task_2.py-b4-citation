@@ -53,12 +53,12 @@ def create_report():
     # Table of Contents
     document.add_heading("Table of Contents", level=1)
     toc = [
-        "Part I: Research Question",
-        "Part II: Method Justification",
-        "Part III: Data Preparation",
-        "Part IV: Analysis",
-        "Webguide",
-        "References"
+        "1. Part I: Research Question",
+        "2. Part II: Method Justification",
+        "3. Part III: Data Preparation",
+        "4. Part IV: Analysis",
+        "5. Webguide",
+        "6. References"
     ]
     for item in toc:
         document.add_paragraph(item, style="List Number")
@@ -70,7 +70,7 @@ def create_report():
         "The research question focuses on understanding the factors contributing to overweight patients, "
         "significantly impacting cost-effective treatment plans through PCA. This analysis utilizes a dataset "
         "containing demographic, medical, and hospital service information from 10,000 patients. PCA will help "
-        "identify key patterns and correlations among the features. (Pedregosa et al., 2011)."
+        "identify key patterns and correlations among the features."
     )
     document.add_page_break()
 
@@ -79,7 +79,7 @@ def create_report():
     document.add_paragraph(
         "Principal Component Analysis (PCA) was selected for this analysis due to its ability to reduce dimensionality "
         "while retaining essential information. By transforming features into uncorrelated principal components, PCA "
-        "improves interpretability, mitigates multicollinearity, and enhances computational efficiency (Waskom, 2017)."
+        "improves interpretability, mitigates multicollinearity, and enhances computational efficiency."
     )
     document.add_page_break()
 
@@ -181,7 +181,7 @@ def create_report():
     # Number of Principal Components Retained
     document.add_heading("2. Number of Principal Components Retained", level=2)
     document.add_paragraph(
-        "Using the elbow criterion, five principal components were retained as they captured significant variance  (Pedregosa et al., 2011)."
+        "Using the elbow criterion, five principal components were retained as they captured significant variance "
         "without overfitting the data."
     )
     add_visual(document, f"{VISUALS_DIR}/scree_plot_with_elbow.png", "Figure 2: Scree Plot with Elbow Point")
@@ -241,8 +241,14 @@ PC5: 5.01% (Cumulative: 33.37%)
     add_apa_references(document, [
         {"author": "Pedregosa, F. et al.", "year": "2011", "title": "Scikit-learn: Machine Learning in Python",
          "source": "https://jmlr.org/papers/v12/pedregosa11a.html"},
+        {"author": "Hunter, J. D.", "year": "2007", "title": "Matplotlib: A 2D Graphics Environment",
+         "source": "https://doi.org/10.1109/MCSE.2007.55"},
+        {"author": "McKinney, W.", "year": "2010", "title": "Data Structures for Statistical Computing in Python",
+         "source": "https://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf"},
         {"author": "Waskom, M. L.", "year": "2017", "title": "Seaborn: Statistical Data Visualization",
          "source": "https://seaborn.pydata.org/"},
+        {"author": "Oliphant, T. E.", "year": "2006", "title": "A Guide to NumPy",
+         "source": "https://numpy.org/"}
     ])
 
     # Save the document
