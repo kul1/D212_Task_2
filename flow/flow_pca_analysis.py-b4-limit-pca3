@@ -8,20 +8,11 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 from utils.visualizations import save_class_distribution, save_auc_curve, save_confusion_matrix, create_visualizations, save_scree_plot
 
+
+
 RESULTS_DIR = "results/pca_analysis"
 VISUALS_DIR = os.path.join(RESULTS_DIR, "visuals")
 os.makedirs(VISUALS_DIR, exist_ok=True)
-
-# Dummy configuration to replace hardcoded paths
-class Config:
-    TARGET_COLUMN = "Overweight_Yes"
-    CONTINUOUS_COLUMNS = ['Age', 'Income', 'VitD_levels']  # Dynamically define these
-    PCA_COMPONENTS_RETAINED = 3
-    TEST_SIZE = 0.3
-    RANDOM_STATE = 42
-    KNN_CONFIG = {'n_neighbors': 5}
-
-config = Config()
 
 
 def visualize_standardization(data, numeric_columns, scaled_data, visuals_dir):
@@ -81,7 +72,6 @@ def save_scree_plot_with_elbow(explained_variance_ratio, visuals_dir):
     print(f"Scree plot with elbow point saved to: {scree_plot_path}")
     return elbow_point
 
-
 def run_pca_analysis(data, config):
     """
     Perform PCA analysis on the dataset, generate relevant plots and metrics, and evaluate using a KNN classifier.
@@ -89,25 +79,31 @@ def run_pca_analysis(data, config):
     print("\n### Step 1: Standardizing Data ###")
 
     # Select continuous columns for PCA and scale them
-    X = data[config.CONTINUOUS_COLUMNS]
+    numeric_columns = data.select_dtypes(include=['number']).columns
+    X = data[numeric_columns]
     y = data[config.TARGET_COLUMN]
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
     print("\n### Visualizing Standardization ###")
-    visualize_standardization(data, config.CONTINUOUS_COLUMNS, X_scaled, VISUALS_DIR)
+    visualize_standardization(data, numeric_columns, X_scaled, VISUALS_DIR)
 
     print("\n### Step 2: Performing PCA ###")
-    pca = PCA(n_components=config.PCA_COMPONENTS_RETAINED)
+    pca = PCA()
     X_pca = pca.fit_transform(X_scaled)
 
     explained_variance_ratio = pca.explained_variance_ratio_
     cumulative_variance = np.cumsum(explained_variance_ratio)
 
+    # Determine the elbow point using the explained variance ratio
+    elbow_point = config.PCA_COMPONENTS_RETAINED
+
     # Save the scree plot
     scree_plot_path = os.path.join(VISUALS_DIR, "scree_plot_with_elbow.png")
-    save_scree_plot_with_elbow(explained_variance_ratio, VISUALS_DIR)
+    save_scree_plot(explained_variance_ratio, elbow_point, scree_plot_path)
+
+    print(f"Scree plot with elbow point saved to: {scree_plot_path}")
 
     print("\nExplained Variance by Component:")
     for i, var in enumerate(explained_variance_ratio, 1):
@@ -131,7 +127,7 @@ def run_pca_analysis(data, config):
         print(f"PC{i} Loadings:\n{component}")
 
     print("\n### Step 4: Splitting Data for Classification ###")
-    X_train, X_test, y_train, y_test = train_test_split(X_pca, y,
+    X_train, X_test, y_train, y_test = train_test_split(X_pca[:, :config.PCA_COMPONENTS_RETAINED], y,
                                                         test_size=config.TEST_SIZE, random_state=config.RANDOM_STATE)
 
     knn = KNeighborsClassifier(n_neighbors=config.KNN_CONFIG['n_neighbors'])
@@ -175,3 +171,4 @@ def run_pca_analysis(data, config):
         print(f"Error generating visualizations: {e}")
 
     print("\n### PCA Analysis Completed Successfully ###")
+

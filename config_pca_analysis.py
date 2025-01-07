@@ -11,14 +11,10 @@ RESULTS_DIR = f'results/{CONFIG_TYPE}'
 FLOW_FUNCTION = f'flow.flow_{CONFIG_TYPE}.run_pca_analysis'
 
 # Analysis parameters
-PCA_COMPONENTS_RETAINED = 5
+PCA_COMPONENTS_RETAINED = 3
 RANDOM_STATE = 42
 TEST_SIZE = 0.3
 
-# Column configurations
-CONTINUOUS_COLUMNS = [
-    'Age', 'Income', 'VitD_levels', 'Doc_visits', 'TotalCharge'
-]
 EXCLUDED_COLUMNS = ['ID', 'Customer_id']
 
 # Define column types
@@ -26,7 +22,7 @@ COLUMN_CONFIG = {
     'Age': 'continuous',
     'Income': 'continuous',
     'VitD_levels': 'continuous',
-    'Doc_visits': 'continuous',
+    'Doc_visits': 'categorical',
     'Overweight': 'categorical',  # Example target
     'Stroke': 'categorical',
     'Arthritis': 'categorical',
@@ -40,17 +36,14 @@ COLUMN_CONFIG = {
 }
 
 # Define continuous and categorical columns
-CONTINUOUS_COLUMNS = ['Age', 'Income', 'VitD_levels', 'Doc_visits']
+CONTINUOUS_COLUMNS = [col for col, col_type in COLUMN_CONFIG.items() if col_type == 'continuous']
 CATEGORICAL_COLUMNS = [col for col, col_type in COLUMN_CONFIG.items() if col_type == 'categorical']
 
 # Specify the target column
 TARGET_COLUMN = 'Overweight_Yes'
 
-# Define independent variables (update to include dummy variables)
-INDEPENDENT_VARIABLES = CONTINUOUS_COLUMNS + [
-    'Stroke_Yes', 'Arthritis_Yes', 'Diabetes_Yes', 'Hyperlipidemia_Yes',
-    'BackPain_Yes', 'Anxiety_Yes', 'Allergic_rhinitis_Yes', 'Reflux_esophagitis_Yes', 'Asthma_Yes'
-]
+# Dynamically define independent variables, excluding the target column
+INDEPENDENT_VARIABLES = CONTINUOUS_COLUMNS + [f"{col}_Yes" for col in CATEGORICAL_COLUMNS if f"{col}_Yes" != TARGET_COLUMN]
 
 # CLASS_LABELS for confusion matrix labeling
 CLASS_LABELS = ['Not Overweight', 'Overweight']  # Adjust labels based on data
