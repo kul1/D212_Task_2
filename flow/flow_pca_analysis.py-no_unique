@@ -1,0 +1,183 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+from utils.visualizations import save_class_distribution, save_auc_curve, save_confusion_matrix, create_visualizations, save_scree_plot
+
+# Paths
+RESULTS_DIR = "results/pca_analysis"
+VISUALS_DIR = os.path.join(RESULTS_DIR, "visuals")
+os.makedirs(VISUALS_DIR, exist_ok=True)
+
+# Configuration Class
+class Config:
+    TARGET_COLUMN = "Overweight_Yes"
+    CONTINUOUS_COLUMNS = ['Age', 'Income', 'VitD_levels']
+    PCA_COMPONENTS_RETAINED = 3
+    TEST_SIZE = 0.3
+    RANDOM_STATE = 42
+    KNN_CONFIG = {'n_neighbors': 5}
+
+config = Config()
+
+def save_pca_loadings(pca, columns, output_path):
+    """
+    Save PCA component loadings to a CSV file.
+    """
+    loadings = pd.DataFrame(pca.components_, columns=columns)
+    loadings.index = [f'PC{i+1}' for i in range(len(pca.components_))]
+    loadings.to_csv(output_path, index=True)
+    print(f"PCA loadings saved to: {output_path}")
+
+def run_pca_analysis(data, config):
+    """
+    Perform PCA analysis, visualize results, and evaluate with KNN classification.
+    """
+    try:
+        print("\n### Step 1: Standardizing Data ###")
+        # Standardize the continuous variables
+        X = data[config.CONTINUOUS_COLUMNS]
+        y = data[config.TARGET_COLUMN]
+
+        # Ensure y is a Series
+        if isinstance(y, pd.DataFrame):
+            y = y.squeeze()
+        print(f"Type of y: {type(y)}")
+        print(f"Unique values in y: {y.unique().tolist()}")  # Convert to list for safe printing
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        print("\n### Visualizing Standardization ###")
+        visualize_standardization(data, config.CONTINUOUS_COLUMNS, X_scaled, VISUALS_DIR)
+
+        print("\n### Step 2: Performing PCA ###")
+        # PCA transformation
+        pca = PCA(n_components=config.PCA_COMPONENTS_RETAINED)
+        X_pca = pca.fit_transform(X_scaled)
+
+        # Explained Variance
+        explained_variance_ratio = pca.explained_variance_ratio_
+        cumulative_variance = np.cumsum(explained_variance_ratio)
+        save_scree_plot_with_elbow(explained_variance_ratio, VISUALS_DIR)
+
+        explained_variance_path = os.path.join(VISUALS_DIR, "explained_variance.csv")
+        pd.DataFrame({
+            "PC": [f'PC{i+1}' for i in range(len(explained_variance_ratio))],
+            "Explained Variance": explained_variance_ratio,
+            "Cumulative Variance": cumulative_variance
+        }).to_csv(explained_variance_path, index=False)
+        print(f"Explained variance saved to: {explained_variance_path}")
+
+        # Save PCA loadings
+        loadings_path = os.path.join(VISUALS_DIR, "pca_loadings.csv")
+        save_pca_loadings(pca, config.CONTINUOUS_COLUMNS, loadings_path)
+
+        print("\n### Step 3: Principal Component Loadings ###")
+        for i, component in enumerate(pca.components_[:config.PCA_COMPONENTS_RETAINED], 1):
+            print(f"PC{i} Loadings:\n{component}")
+
+        print("\n### Step 4: Splitting Data for Classification ###")
+        # Split data into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_pca, y, test_size=config.TEST_SIZE, random_state=config.RANDOM_STATE
+        )
+
+        print(f"y_train shape: {y_train.shape}, y_test shape: {y_test.shape}")
+        print(f"Unique values in y_train: {y_train.unique().tolist()}")
+        print(f"Unique values in y_test: {y_test.unique().tolist()}")
+
+        # Train KNN model
+        knn = KNeighborsClassifier(**config.KNN_CONFIG)
+        knn.fit(X_train, y_train)
+        y_pred = knn.predict(X_test)
+
+        # Calculate accuracy
+        accuracy = (y_pred == y_test).mean()
+        print(f"Model Accuracy: {accuracy:.2f}")
+
+        # Save class distribution visualization
+        class_distribution_path = os.path.join(VISUALS_DIR, "class_distribution.png")
+        save_class_distribution(data, config.TARGET_COLUMN, output_path=class_distribution_path)
+
+        # Generate AUC curve (if probabilities available)
+        if hasattr(knn, "predict_proba"):
+            y_scores = knn.predict_proba(X_test)[:, 1]
+            auc_curve_path = os.path.join(VISUALS_DIR, "auc_curve.png")
+            save_auc_curve(y_test, y_scores, output_path=auc_curve_path)
+
+        # Save confusion matrix
+        conf_matrix_path = os.path.join(VISUALS_DIR, "confusion_matrix.png")
+        save_confusion_matrix(y_test, y_pred, output_path=conf_matrix_path)
+
+        # Save classification report
+        class_report_path = os.path.join(RESULTS_DIR, "classification_report.txt")
+        class_report = classification_report(y_test, y_pred, target_names=["Not Overweight", "Overweight"])
+        with open(class_report_path, "w") as f:
+            f.write(class_report)
+        print(f"Classification Report saved to: {class_report_path}")
+
+        print("\n### Step 6: Generating Visualizations ###")
+        create_visualizations(data, target_column=config.TARGET_COLUMN, independent_variables=config.CONTINUOUS_COLUMNS)
+
+        print("\n### PCA Analysis Completed Successfully ###")
+
+    except Exception as e:
+        print(f"Error during PCA analysis: {e}")
+
+def visualize_standardization(data, numeric_columns, scaled_data, visuals_dir):
+    """
+    Visualize the original and standardized data distributions.
+    """
+    # Original distribution
+    original_distribution_path = os.path.join(visuals_dir, "original_distribution.png")
+    plt.figure(figsize=(12, 6))
+    for column in numeric_columns:
+        data[column].plot(kind='density', alpha=0.7, label=column)
+    plt.title("Original Data Distribution")
+    plt.xlabel("Value")
+    plt.ylabel("Density")
+    plt.legend(loc="upper right")
+    plt.tight_layout()
+    plt.savefig(original_distribution_path)
+    plt.close()
+
+    # Standardized distribution
+    standardized_distribution_path = os.path.join(visuals_dir, "standardized_distribution.png")
+    plt.figure(figsize=(12, 6))
+    for i, column in enumerate(numeric_columns):
+        plt.hist(scaled_data[:, i], bins=30, alpha=0.7, label=column)
+    plt.title("Standardized Data Distribution")
+    plt.xlabel("Value")
+    plt.ylabel("Frequency")
+    plt.legend(loc="upper right")
+    plt.tight_layout()
+    plt.savefig(standardized_distribution_path)
+    plt.close()
+
+def save_scree_plot_with_elbow(explained_variance_ratio, visuals_dir):
+    """
+    Generate and save a scree plot with an elbow point.
+    """
+    cumulative_variance = np.cumsum(explained_variance_ratio)
+    elbow_point = np.argmax(cumulative_variance >= 0.8) + 1  # First PC to explain >= 80%
+
+    scree_plot_path = os.path.join(visuals_dir, "scree_plot_with_elbow.png")
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio, marker='o', label='Individual Variance')
+    plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker='x', linestyle='--', label='Cumulative Variance')
+    plt.axvline(x=elbow_point, color='red', linestyle='--', label=f'Elbow Point: {elbow_point}')
+    plt.title('Scree Plot with Elbow Point')
+    plt.xlabel('Principal Component')
+    plt.ylabel('Variance Explained')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(scree_plot_path)
+    plt.close()
+    print(f"Scree plot with elbow point saved to: {scree_plot_path}")
+    return elbow_point

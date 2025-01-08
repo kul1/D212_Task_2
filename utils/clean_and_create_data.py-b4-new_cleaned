@@ -1,0 +1,87 @@
+# utils/clean_and_create_data.py
+import os
+import pandas as pd
+import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from data_encoding import create_dummies
+from utils.data_loader import save_prepared_data_with_dummies
+from data_cleaning import clean_data
+from sklearn.model_selection import train_test_split
+def clean_and_create_data(data, config):
+    """
+    Clean and standardize the raw dataset, including handling missing values,
+    outlier treatment, and standardizing continuous variables.
+
+    Parameters:
+    - data (pd.DataFrame): The raw dataset.
+    - config: The configuration object containing column information.
+
+    Returns:
+    - pd.DataFrame: The cleaned dataset with continuous variables standardized.
+    """
+
+    # Step 1: Identify continuous and categorical columns
+    continuous_columns = [col for col, col_type in config.COLUMN_CONFIG.items() if col_type == 'continuous']
+    categorical_columns = [col for col, col_type in config.COLUMN_CONFIG.items() if col_type == 'categorical']
+    target_column = config.TARGET_COLUMN
+
+    # Ensure target column exists in the dataset
+    if target_column not in data.columns and target_column.endswith('_Yes'):
+        base_target = target_column.replace('_Yes', '')
+        if base_target in data.columns:
+            print(f"Encoding target column '{base_target}' into binary '{target_column}'...")
+            data[target_column] = data[base_target].apply(lambda x: 1 if x == "Yes" else 0)
+        else:
+            raise ValueError(f"Target column '{target_column}' or base column '{base_target}' not found in dataset.")
+
+    print("\nInitial Missing Value Summary (Relevant Columns Only):")
+    print(data.isnull().sum())
+
+    # Step 2: Handle missing values for continuous variables
+    print("\nHandling missing values for continuous variables...")
+    for col in continuous_columns:
+        if data[col].isnull().sum() > 0:
+            print(f"Filling missing values in {col} with mean: {data[col].mean()}")
+            data[col] = data[col].fillna(data[col].mean())
+
+    # Step 3: Handle missing values for categorical variables
+    print("\nHandling missing values for categorical variables...")
+    for col in categorical_columns:
+        if data[col].isnull().sum() > 0:
+            print(f"Filling missing values in {col} with 'Unknown'")
+            data[col] = data[col].fillna('Unknown')
+
+    # Step 4: Cap outliers within 1.5 times the IQR for continuous variables
+    print("\nCapping outliers for continuous variables...")
+    for col in continuous_columns:
+        Q1 = data[col].quantile(0.25)
+        Q3 = data[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        data[col] = data[col].clip(lower=lower_bound, upper=upper_bound)
+        print(f"Outliers in {col} capped.")
+
+    # Step 5: Standardize continuous variables (mean = 0, std = 1)
+    print("\nStandardizing continuous variables...")
+    scaler = StandardScaler()
+    data[continuous_columns] = scaler.fit_transform(data[continuous_columns])
+    print("Continuous variables standardized.")
+
+    # Step 6: Create dummy variables for categorical columns
+    print("\nCreating dummy variables for categorical columns...")
+    data = pd.get_dummies(data, columns=categorical_columns, drop_first=True)
+    print("Dummy variables created.")
+
+    # Final check for missing values
+    print("\nFinal Missing Value Summary (After Cleaning):")
+    print(data.isnull().sum())
+    assert not data.isnull().any().any(), "Data cleaning failed. NaN values remain."
+
+    # Ensure target column is in the final dataset
+    if target_column not in data.columns:
+        raise ValueError(f"Target column '{target_column}' is missing after cleaning.")
+
+    print("\nData cleaning and preparation completed successfully.")
+    return data
