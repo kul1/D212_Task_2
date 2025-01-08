@@ -1,0 +1,64 @@
+# utils/clean_and_create_data.py
+import os
+import pandas as pd
+import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from data_encoding import create_dummies
+from utils.data_loader import save_prepared_data_with_dummies
+from data_cleaning import clean_data
+from sklearn.model_selection import train_test_split
+
+def clean_and_create_data(data, config):
+    """
+    Clean and standardize the raw dataset, including handling missing values,
+    outlier treatment, and standardizing continuous variables.
+
+    Parameters:
+    - data (pd.DataFrame): The raw dataset.
+    - config: The configuration object containing column information.
+
+    Returns:
+    - pd.DataFrame: The cleaned dataset with continuous variables standardized.
+    """
+
+    # Step 1: Identify continuous and categorical columns
+    continuous_columns = [col for col, col_type in config.COLUMN_CONFIG.items() if col_type == 'continuous']
+    categorical_columns = [col for col, col_type in config.COLUMN_CONFIG.items() if col_type == 'categorical']
+
+    # Step 2: Handle missing values for continuous variables
+    data[continuous_columns] = data[continuous_columns].fillna(data[continuous_columns].mean())
+
+    # Step 3: Handle missing values for categorical columns
+    for col in categorical_columns:
+        data[col] = data[col].fillna('Unknown')  # Replace NaN with 'Unknown'
+
+    # Step 4: Cap outliers within 1.5 times the IQR for continuous variables
+    for col in continuous_columns:
+        Q1 = data[col].quantile(0.25)
+        Q3 = data[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        data[col] = data[col].clip(lower=lower_bound, upper=upper_bound)
+
+    # Step 5: Standardize continuous variables (mean = 0, std = 1)
+    scaler = StandardScaler()
+    data[continuous_columns] = scaler.fit_transform(data[continuous_columns])
+
+    # Step 6: Check for and resolve any remaining missing values
+    if data.isnull().any().any():
+        print("Warning: Missing values detected after cleaning. Imputing missing values.")
+        for col in data.columns:
+            if data[col].dtype == 'object':
+                data[col] = data[col].fillna('Unknown')  # Impute with 'Unknown' for categorical columns
+            else:
+                data[col] = data[col].fillna(data[col].mean())  # Impute with mean for numeric columns
+
+    # Step 7: Create dummy variables for categorical columns
+    data = pd.get_dummies(data, columns=categorical_columns, drop_first=True)
+
+    # Validate cleaning: ensure no missing values
+    assert not data.isnull().any().any(), "Data cleaning failed. NaN values remain."
+
+    return data
